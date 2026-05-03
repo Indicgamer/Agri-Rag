@@ -1,0 +1,57 @@
+# Python / virtual environments
+venv/
+.venv/
+venv_old_broken/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Secrets / local config
+.env
+.env.*
+!.env.example
+!.env.example.safe
+.streamlit/secrets.toml
+
+# Logs / runtime output
+logs/
+*.log
+result_*.json
+output_*.json
+
+# Local databases and generated indexes
+data/chroma_db/
+data/**/*.sqlite
+data/**/*.sqlite3
+data/**/*.db
+*.duckdb
+
+# Large/raw local data and generated ingestion exports
+data/raw/
+data/pdfs/
+data/uploads/
+notebooks/agri_exports/
+notebooks/**/agri_exports/
+triplets.jsonl
+triplets.csv
+chunks.jsonl
+errors.jsonl
+neo4j_import_triplets.cypher
+
+# Model/cache directories
+models/
+.cache/
+cache/
+huggingface/
+hf_cache/
+ollama/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

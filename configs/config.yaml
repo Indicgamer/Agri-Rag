@@ -1,0 +1,126 @@
+# Agri-RAG Configuration
+
+project:
+  name: "Agri-RAG"
+  version: "1.0.0"
+  phase: "Phase 3 - Implementation & Benchmarking"
+  student: "Sachidanand C G (1RV24SCS11)"
+  guide: "Dr. Soumya A"
+
+# Crops Configuration
+crops:
+  included:
+    - Rice
+    - Wheat
+    - Cotton
+    - Maize
+    - Sugarcane
+
+# Data Sources
+data_sources:
+  - name: "TNAU Crop Production Guide 2020"
+    path: "data/TNAU_CPG_2020.pdf"
+    format: "PDF"
+  - name: "ICAR-KVK Manuals"
+    path: "data/icar_kvk_manuals/"
+    format: "PDF/TXT"
+  - name: "CIBRC Banned Pesticide List"
+    path: "data/banned_pesticides.txt"
+    format: "TXT"
+
+# Neo4j Configuration
+neo4j:
+  uri: "bolt://localhost:7687"
+  username: "neo4j"
+  password: "${NEO4J_PASSWORD}"
+  database: "agri_rag_kg"
+  auto_index: true
+
+# ChromaDB Configuration
+chromadb:
+  persistence_dir: "data/chroma_db"
+  collection_name: "agriculture_corpus"
+  embedding_model: "all-MiniLM-L6-v2"  # sentence-transformers
+
+# Model Configuration
+models:
+  triplet_extractor:
+    provider: "ollama"
+    model_name: "llama3.2:1b"
+    openai_model: "gpt-4o-mini"
+    allow_rule_fallback: false
+    base_url: "http://localhost:11434"
+    temperature: 0.3
+    max_tokens: 500
+  
+  nli_pruner:
+    provider: "transformers"
+    model_name: "cross-encoder/nli-deberta-v3-base"
+    device: "cuda"  # or "cpu"
+    threshold:
+      entailed: 0.7
+      neutral: 0.4
+      contradiction: 0.0
+  
+  response_generator:
+    provider: "ollama"
+    model_name: "llama3.2:1b"
+    openai_model: "gpt-4o-mini"
+    allow_response_fallback: false
+    base_url: "http://localhost:11434"
+    temperature: 0.2
+    max_tokens: 1000
+    context_window: 4000
+
+# Retrieval Configuration
+retrieval:
+  hybrid:
+    vector_weight: 0.4
+    graph_weight: 0.6
+    top_k_vector: 5
+    top_k_graph: 10
+  
+  neo4j_queries:
+    max_hops: 3
+    relationship_types:
+      - "AFFECTS"
+      - "CAUSES"
+      - "PREVENTS"
+      - "TREATS"
+      - "RECOMMENDS"
+      - "CONTRAINDICATED_FOR"
+
+# Pruning Configuration
+pruning:
+  enabled: true
+  nli_threshold: 0.5
+  keep_contradictions: true  # Keep contradictions as warnings
+  remove_neutral: true
+
+# Evaluation Configuration
+evaluation:
+  ragas:
+    metrics:
+      - "faithfulness"
+      - "context_precision"
+      - "context_recall"
+      - "answer_relevancy"
+    num_samples: 50  # For hard agricultural QA set
+
+# Streamlit UI Configuration
+streamlit:
+  page_title: "Agri-RAG: Reliable Indian Agriculture Advisor"
+  layout: "wide"
+  theme: "light"
+
+# Logging
+logging:
+  level: "INFO"
+  log_dir: "logs/"
+  log_file: "agri_rag.log"
+
+# API Endpoints
+api:
+  port: 8000
+  host: "0.0.0.0"
+  debug: false
