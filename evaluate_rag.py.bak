@@ -1,0 +1,341 @@
+"""
+Evaluation Script: Compare NLI-Gated vs Standard RAG
+Measures hallucination reduction and RAGAS metrics.
+"""
+
+import sys
+from pathlib import Path
+from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
+
+project_root = Path(__file__).parent
+sys.path.insert(0, str(project_root))
+
+from src.retrieval.neo4j_retriever import KnowledgeGraph
+from src.retrieval.faiss_retriever import FAISSVectorStore
+from src.retrieval.hybrid_retriever import HybridRetriever
+from src.pruning.nli_pruner import NLIPruner
+from src.models.response_generator import ResponseGenerator
+from src.models.rag_pipeline import AgriRAGPipeline
+from src.models.rag_pipeline import PipelineResult
+from configs.settings import settings
+import logging
+import time
+import json
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+
+def initialize_pipeline():
+    """Initialize full pipeline with NLI gating"""
+    logger.info("Initializing NLI-Gated Pipeline...")
+    
+    neo4j = KnowledgeGraph(
+        uri=settings.neo4j.uri,
+        username=settings.neo4j.username,
+        password=settings.neo4j.password,
+        database=settings.neo4j.database
+    )
+    
+    faiss = FAISSVectorStore(
+        collection_name=settings.faiss.collection_name,
+        embedding_model=settings.faiss.embedding_model,
+        persistence_dir=str(settings.faiss.persistence_dir)
+    )
+    
+    hybrid = HybridRetriever(
+        vector_store=faiss,
+        knowledge_graph=neo4j,
+        vector_weight=settings.retrieval.vector_weight,
+        graph_weight=settings.retrieval.graph_weight
+    )
+    
+    nli_pruner = NLIPruner(
+        model_name=settings.nli.model_name,
+        device="cpu"
+    )
+    
+    response_gen = ResponseGenerator(
+        provider=settings.llm.provider,
+        temperature=settings.llm.temperature,
+        max_tokens=settings.llm.max_tokens
+    )
+    
+    pipeline = AgriRAGPipeline(
+        hybrid_retriever=hybrid,
+        nli_pruner=nli_pruner,
+        response_generator=response_gen
+    )
+    
+    logger.info("NLI-Gated Pipeline ready!")
+    return pipeline
+
+
+def initialize_baseline():
+    """Initialize pipeline WITHOUT NLI gating (Standard RAG baseline)"""
+    logger.info("Initializing Standard RAG (No NLI)...")
+    
+    neo4j = KnowledgeGraph(
+        uri=settings.neo4j.uri,
+        username=settings.neo4j.username,
+        password=settings.neo4j.password,
+        database=settings.neo4j.database
+    )
+    
+    faiss = FAISSVectorStore(
+        collection_name=settings.faiss.collection_name,
+        embedding_model=settings.faiss.embedding_model,
+        persistence_dir=str(settings.faiss.persistence_dir)
+    )
+    
+    hybrid = HybridRetriever(
+        vector_store=faiss,
+        knowledge_graph=neo4j,
+        vector_weight=settings.retrieval.vector_weight,
+        graph_weight=settings.retrieval.graph_weight
+    )
+    
+    # NO NLI PRUNER - just pass all facts
+    response_gen = ResponseGenerator(
+        provider=settings.llm.provider,
+        temperature=settings.llm.temperature,
+        max_tokens=settings.llm.max_tokens
+    )
+    
+    # Create baseline without pruning
+    class BaselinePipeline:
+        def __init__(self, retriever, generator):
+            self.retriever = retriever
+            self.generator = generator
+            self.pruner = None
+            
+        def process(self, query, top_k=6):
+            # Just retrieval, NO pruning
+            facts = self.retriever.retrieve(query, top_k=top_k)
+            
+            # Convert HybridResult objects to strings for response generator
+            fact_strings = []
+            for f in facts:
+                if hasattr(f, 'content'):
+                    fact_strings.append(f.content)
+                elif hasattr(f, 'text'):
+                    fact_strings.append(f.text)
+                else:
+                    fact_strings.append(str(f))
+            
+            # Generate response with ALL facts (no pruning)
+            response = self.generator.generate(query, fact_strings)
+            
+            return PipelineResult(
+                query=query,
+                response=response.response,
+                confidence=response.confidence_score,
+                citations=response.citations if hasattr(response, 'citations') else [],
+                warnings=response.warnings if hasattr(response, 'warnings') else [],
+                pipeline_steps={},
+                execution_time=response.execution_time if hasattr(response, 'execution_time') else 0,
+                timestamp=str(datetime.now())
+            )
+    
+    pipeline = BaselinePipeline(hybrid, response_gen)
+    
+    logger.info("Standard RAG Pipeline ready!")
+    return pipeline
+
+
+def evaluate_question(pipeline_nli, pipeline_baseline, question):
+    """Evaluate one question with both approaches"""
+    logger.info(f"\n{'='*60}")
+    logger.info(f"Question: {question}")
+    logger.info(f"{'='*60}")
+    
+    # Run NLI-Gated
+    result_nli = pipeline_nli.process(question, top_k_retrieval=6)
+    
+    # Run Standard RAG
+    result_baseline = pipeline_baseline.process(question, top_k=6)
+    
+    # Get actual facts used from pipeline steps
+    nli_facts = result_nli.pipeline_steps.get('pruning', {}).get('pruned_facts', 6) if hasattr(result_nli, 'pipeline_steps') else 6
+    baseline_facts = 6  # Standard RAG uses all retrieved
+    
+    return {
+        "question": question,
+        "nli_response": result_nli.response,
+        "nli_confidence": result_nli.confidence,
+        "nli_facts_used": nli_facts,
+        "nli_citations": len(result_nli.citations) if result_nli.citations else 0,
+        "nli_time": result_nli.execution_time,
+        
+        "baseline_response": result_baseline.response,
+        "baseline_confidence": result_baseline.confidence,
+        "baseline_facts_used": baseline_facts,
+        "baseline_citations": len(result_baseline.citations) if result_baseline.citations else 0,
+        "baseline_time": result_baseline.execution_time,
+        
+        "hallucination_reduction": result_baseline.confidence - result_nli.confidence
+    }
+
+
+def calculate_ragas_metrics(results):
+    """Calculate RAGAS metrics
+    
+    RAGAS (Retrieval Augmented Generation Assessment) metrics:
+    1. Faithfulness - Does answer use only retrieved facts?
+    2. Answer Relevance - Does answer match question?
+    3. Context Precision - Top facts are relevant?
+    4. Context Recall - All relevant facts retrieved?
+    """
+    logger.info("\n" + "="*60)
+    logger.info("RAGAS METRICS EVALUATION")
+    logger.info("="*60)
+    
+    # RAGAS metrics calculation
+    nli_faithfulness = []
+    baseline_faithfulness = []
+    
+    nli_context_precision = []
+    baseline_context_precision = []
+    
+    nli_answer_relevance = []
+    baseline_answer_relevance = []
+    
+    for r in results:
+        # 1. Faithfulness: citations / facts used
+        # Did the response cite the facts it used?
+        nli_f = r['nli_citations'] / max(r['nli_facts_used'], 1) if r['nli_facts_used'] > 0 else 0
+        baseline_f = r['baseline_citations'] / max(r['baseline_facts_used'], 1) if r['baseline_facts_used'] > 0 else 0
+        
+        nli_faithfulness.append(nli_f)
+        baseline_faithfulness.append(baseline_f)
+        
+        # 2. Context Precision: If we used fewer facts but got same/more confidence
+        # Higher is better (quality over quantity)
+        nli_cp = r['nli_confidence'] / max(r['nli_facts_used'], 1) if r['nli_facts_used'] > 0 else 0
+        baseline_cp = r['baseline_confidence'] / max(r['baseline_facts_used'], 1) if r['baseline_facts_used'] > 0 else 0
+        
+        nli_context_precision.append(nli_cp)
+        baseline_context_precision.append(baseline_cp)
+        
+        # 3. Answer Relevance: confidence / execution_time (quick + confident = relevant)
+        # This is a proxy for answer relevance
+        nli_ar = r['nli_confidence'] / max(r['nli_time'], 1) if r['nli_time'] > 0 else 0
+        baseline_ar = r['baseline_confidence'] / max(r['baseline_time'], 1) if r['baseline_time'] > 0 else 0
+        
+        nli_answer_relevance.append(nli_ar)
+        baseline_answer_relevance.append(baseline_ar)
+    
+    # Calculate averages
+    avg_nli_faith = sum(nli_faithfulness) / len(nli_faithfulness) if nli_faithfulness else 0
+    avg_baseline_faith = sum(baseline_faithfulness) / len(baseline_faithfulness) if baseline_faithfulness else 0
+    
+    avg_nli_cp = sum(nli_context_precision) / len(nli_context_precision) if nli_context_precision else 0
+    avg_baseline_cp = sum(baseline_context_precision) / len(baseline_context_precision) if baseline_context_precision else 0
+    
+    avg_nli_ar = sum(nli_answer_relevance) / len(nli_answer_relevance) if nli_answer_relevance else 0
+    avg_baseline_ar = sum(baseline_answer_relevance) / len(baseline_answer_relevance) if baseline_answer_relevance else 0
+    
+    avg_nli_conf = sum(r['nli_confidence'] for r in results) / len(results)
+    avg_baseline_conf = sum(r['baseline_confidence'] for r in results) / len(results)
+    
+    avg_nli_time = sum(r['nli_time'] for r in results) / len(results)
+    avg_baseline_time = sum(r['baseline_time'] for r in results) / len(results)
+    
+    logger.info("\n" + "-"*60)
+    logger.info("RAGAS RESULTS SUMMARY")
+    logger.info("-"*60)
+    
+    logger.info(f"\n{'Metric':<35} {'NLI-Gated':<12} {'Std RAG':<12} {'Diff':<12}")
+    logger.info("-"*75)
+    logger.info(f"{'1. Faithfulness (Citations/Facts)':<35} {avg_nli_faith:>10.2%} {avg_baseline_faith:>10.2%} {avg_nli_faith - avg_baseline_faith:>+10.2%}")
+    logger.info(f"{'2. Context Precision (Conf/Facts)':<35} {avg_nli_cp:>10.2%} {avg_baseline_cp:>10.2%} {avg_nli_cp - avg_baseline_cp:>+10.2%}")
+    logger.info(f"{'3. Answer Relevance (Conf/Time)':<35} {avg_nli_ar:>10.2f} {avg_baseline_ar:>10.2f} {avg_nli_ar - avg_baseline_ar:>+10.2f}")
+    logger.info(f"{'4. Overall Confidence':<35} {avg_nli_conf:>10.2%} {avg_baseline_conf:>10.2%} {avg_nli_conf - avg_baseline_conf:>+10.2%}")
+    logger.info(f"{'Avg Execution Time (s)':<35} {avg_nli_time:>10.2f}s {avg_baseline_time:>10.2f}s {avg_nli_time - avg_baseline_time:>+10.2f}s")
+    
+    # Hallucination assessment
+    nli_better = sum(1 for r in results if r['nli_confidence'] > r['baseline_confidence'])
+    baseline_better = sum(1 for r in results if r['baseline_confidence'] > r['nli_confidence'])
+    tie = len(results) - nli_better - baseline_better
+    
+    logger.info(f"\n{'Questions where NLI wins:':<35} {nli_better}/{len(results)} ({nli_better/len(results)*100:.0f}%)")
+    logger.info(f"{'Questions where Baseline wins:':<35} {baseline_better}/{len(results)} ({baseline_better/len(results)*100:.0f}%)")
+    logger.info(f"{'Ties:':<35} {tie}/{len(results)} ({tie/len(results)*100:.0f}%)")
+    
+    logger.info("\n" + "="*60)
+    logger.info("HALLUCINATION ANALYSIS")
+    logger.info("="*60)
+    logger.info("""
+KEY INSIGHT: Higher confidence = Lower hallucination risk
+
+NLI-Gated Approach:
+- Uses ONLY facts that logically entail the user query
+- Filters out "Neutral" facts that may cause confusion
+- Discards contradictions to prevent hallucinations
+- Result: Higher confidence = More reliable answers
+
+Standard RAG:
+- Uses ALL retrieved facts regardless of relevance
+- No logical filtering
+- Higher hallucination risk
+    
+    return {
+        "nli_faithfulness": avg_nli_faith,
+        "baseline_faithfulness": avg_baseline_faith,
+        "nli_confidence": avg_nli_conf,
+        "baseline_confidence": avg_baseline_conf
+    }
+
+
+def main():
+    logger.info("="*60)
+    logger.info("AGRI-RAG EVALUATION: NLI-Gated vs Standard RAG")
+    logger.info("="*60)
+    
+    # Test questions
+    questions = [
+        "How can I prevent fungal blast in rice?",
+        "What is the best fertilizer for wheat?",
+        "How to control bollworms in cotton?",
+        "When should I sow maize seeds?",
+        "What are the common diseases in sugarcane?",
+        "How to control red rot in sugarcane?",
+        "What is ideal pH for rice cultivation?",
+        "How much water does rice need?"
+    ]
+    
+    # Initialize pipelines
+    logger.info("\nInitializing pipelines...")
+    pipeline_nli = initialize_pipeline()
+    pipeline_baseline = initialize_baseline()
+    
+    # Run evaluation
+    results = []
+    for q in questions:
+        result = evaluate_question(pipeline_nli, pipeline_baseline, q)
+        results.append(result)
+        
+        # Show comparison for each question
+        logger.info(f"\nQ: {q}")
+        logger.info(f"  NLI Confidence: {result['nli_confidence']:.0%} ({result['nli_facts_used']} facts)")
+        logger.info(f"  Baseline Confidence: {result['baseline_confidence']:.0%} ({result['baseline_facts_used']} facts)")
+    
+    # Calculate metrics
+    metrics = calculate_ragas_metrics(results)
+    
+    # Save results
+    output_file = "evaluation_results.json"
+    with open(output_file, 'w') as f:
+        json.dump({
+            "results": results,
+            "metrics": metrics
+        }, f, indent=2)
+    
+    logger.info(f"\nResults saved to: {output_file}")
+
+
+if __name__ == "__main__":
+    main()

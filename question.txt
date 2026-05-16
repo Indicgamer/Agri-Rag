@@ -1,0 +1,59 @@
+To test your RAG system's knowledge graph extraction, retrieval accuracy, and NLI gating, I have generated **50 complex questions** based on the technical specifications, numerical data, and location-specific recommendations found in the sources.
+
+### Rice Management and Varieties
+1. Contrast the water management requirements for puddling in traditional transplanted rice versus the laser leveling and wetting process in Non-Puddled Transplanted Rice (NPTR).
+2. Describe the physical dimensions, perforation details, and marking requirements for the "Field Water Tube" (FWT) used in Alternate Wetting and Drying Irrigation.
+3. List the specific blanket NPK recommendations for short-duration rice varieties during the dry season in the Cauvery delta versus other tracts in Tamil Nadu.
+4. What is the specific weight of the stone roller and the exact moisture level range required to manage "fluffy paddy soils" once every three years?
+5. Explain the irrigation depth restoration protocol in the System of Rice Intensification (SRI) after hairline cracks develop but before panicle initiation.
+6. For the ASD 18 rice variety, identify its year of notification, its specific parentage, and its duration in days.
+7. Detail the multi-step seed treatment process for rainfed rice, including the specific concentration of KCl and the requirements for shade drying.
+8. Compare the calibrated SSNM fertilizer doses for $P_{2}O_{5}$ and $K_{2}O$ in the Coimbatore District (General) versus the New delta of the Cauvery.
+9. For dry seeded rainfed un-puddled lowland rice, specify the timing for the three split applications and the exact N and $K_{2}O$ dosages for each.
+10. Compare the Fertilizer Nitrogen (FN) formulas for Rice-SRI (3) in Noyyal series soil versus Rice-SRI-White Ponni (5) in the same soil series.
+
+### Millets: Sorghum, Cumbu, and Maize
+11. State the maximum, minimum, and optimum temperature requirements for sorghum, as well as its altitude limit in meters above MSL.
+12. If a pulse crop is raised as an intercrop in sorghum, which specific herbicide must be avoided, and what alternative chemical is recommended?
+13. Outline the irrigation schedule for transplanted sorghum during the flowering phase, including the specific days for each of the two irrigations.
+14. Describe the management protocol for the sorghum shoot fly, including the density of fish meal traps per hectare and the recommended age of the crop for this practice.
+15. What are the specific visual indicators of maturity in sorghum, and how does the harvesting protocol differ for tall varieties?
+16. For direct-sown cumbu, what is the multi-chemical seed soaking protocol for improving germination and stand?
+17. Detail the herbicide application protocol for direct-sown cumbu, including the specific chemical, sprayer type, and volume of water required per hectare.
+18. Explain the role of activated kaolin in cumbu storage and the specific moisture percentage threshold required for long-term grain storage.
+19. For hybrid cumbu seed production, what is the specific planting ratio of female to male lines and the foliar spray used for enhanced seed set?
+20. Explain the curing process for ragi earheads harvested during the second harvest to ensure they reach maturity.
+21. Contrast the moisture content and storage duration capabilities for ragi seeds stored in gunny bags versus 700 gauge polythene bags.
+22. Identify the specific chemical mixing ratio and application method for managing root aphids in ragi.
+23. Specify the management recommendations for neck and finger blast in ragi, including the specific chemicals and their application timing relative to flowering.
+24. Contrast the minimum temperature required for maize germination with the optimal temperature ranges for its growth versus germination.
+25. Provide the formula for calculating maize drip irrigation volume and list the specific crop coefficients ($K_{c}$) for the vegetative, flowering, and grain formation stages.
+26. Under what soil conditions is a blanket recommendation of 60:30:30 NPK kg/ha used for maize, and how does this differ for Vertisols?
+27. Recommend specific intercropping systems for maize to achieve higher net returns in the red lateritic soils versus the Vertisols of Southern districts.
+28. For hybrid maize seed production, what are the three split application timings for Nitrogen and the specific foliar spray recommended at the 50% flowering stage?
+
+### Pulses: Redgram, Blackgram, and Greengram
+29. Compare the 100-grain weight range and the pattern of growth for indeterminate versus semi-determinate redgram varieties.
+30. List the pure crop spacing requirements for the CO(Rg) 7 redgram variety in high fertility versus low fertility soil.
+31. Identify the Economic Threshold Level (ETL) for pod borers in redgram and list the five different biological and mechanical management strategies suggested before chemical intervention.
+32. What is the specific biological control agent and the decomposed carrier material required for managing Wilt ($Fusarium$ $udum$) in redgram?
+33. Describe the multi-component ratio and ingredients of the eco-friendly "halogen mixture" used for pre-storage seed treatment.
+34. List the varieties of blackgram recommended for the Puratasipattam season specifically for districts like Perambalur and Ariyalur.
+35. Specify the rainfed versus irrigated basal NPK fertilizer requirements for blackgram if soil tests have not been conducted.
+36. List the four different recommended insecticides and their dosages for managing blue butterflies in blackgram.
+37. Explain why heavy rains at the flowering stage are harmful for greengram and describe its general status regarding drought tolerance.
+38. Identify the critical growth stages for irrigation in greengram and the specific foliar spray recommended to enhance flower number and pod setting.
+39. Describe the ideal soil tilth and drainage conditions for Bengalgram and its classification based on photoperiodism.
+40. Contrast the seed-to-seed versus vegetable-type durations for lablab and specify the habit and height range for variety CO (Gb) 14.
+41. What are the three specific chemical options and their concentrations for managing rust in soybeans at the onset of the disease?
+42. Define the Economic Threshold Level (ETL) for stem fly damage in blackgram, greengram, and cowpea.
+
+### Oilseeds, Fibers, and Climate Planning
+43. Identify the groundnut varieties recommended for the Southern Zone during the Thaippattam season versus the Karthigaipattam season.
+44. Detail the virus suspension preparation process for managing $Amsacta$ $albistriga$ in groundnut, including the number of larvae required per hectare.
+45. List the sesame varieties recommended for the Masipattam season in the Western Zone.
+46. Identify the two primary storage pests of sesame and the specific concentration of activated clay recommended for seed protection.
+47. Contrast the recommended castor varieties/hybrids for rainfed situations versus the specific hybrid recommended for irrigated situations.
+48. List the specific spacing requirements for the castor hybrids YRCH 1 and YRCH 2 under rainfed versus irrigated conditions.
+49. Explain how the "Length of Growing Period (G)" in Meteorological standard weeks determines whether a single crop, intercropping, or double cropping should be organized.
+50. According to climate change analysis, what are the projected percentage reductions in sorghum yield due to nighttime temperature increases for the years 2020, 2050, and 2080?

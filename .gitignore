@@ -55,3 +55,9 @@ ollama/
 Thumbs.db
 .vscode/
 .idea/
+
+
+./pytest_cache/
+__pycache__/
+.mypy_cache/
+.ruff_cache/pytest-cache-files-*/

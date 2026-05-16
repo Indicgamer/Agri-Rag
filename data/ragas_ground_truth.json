@@ -1,0 +1,27 @@
+{
+  "dataset_name": "Agri-RAG RAGAS Evaluation Dataset",
+  "description": "Questions from PDF content for evaluation",
+  "version": "3.0",
+  "questions": [
+    {"id": 1, "question": "What are the best rice varieties in Tamil Nadu?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 2, "question": "When to sow rice in Kuruvai season?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 3, "question": "What is the spacing for rice planting?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 4, "question": "What nitrogen dose is recommended for rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 5, "question": "How to control fungal blast in rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 6, "question": "What is the water requirement for rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 7, "question": "What is the temperature requirement for rice cultivation?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 8, "question": "How to control pests in cotton?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 9, "question": "What is the fertilizer dose for sugarcane?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 10, "question": "How to control red rot in sugarcane?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 11, "question": "What is the best wheat variety?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 12, "question": "When to sow maize seeds?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 13, "question": "What are the maize varieties in Tamil Nadu?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 14, "question": "How to control leaf folder in rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 15, "question": "What is zinc deficiency in rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 16, "question": "When to apply urea for rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 17, "question": "What is the harvest time for rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 18, "question": "How to manage weeds in rice field?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 19, "question": "What is the seed rate for rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
+    {"id": 20, "question": "How to control bacterial leaf blight in rice?", "ground_truth_answer": "", "ground_truth_contexts": []}
+  ]
+}

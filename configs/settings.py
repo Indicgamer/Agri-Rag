@@ -17,7 +17,7 @@ class Neo4jSettings(BaseSettings):
     uri: str = Field(default_factory=lambda: os.getenv("NEO4J_URI", "bolt://localhost:7687"))
     username: str = Field(default_factory=lambda: os.getenv("NEO4J_USERNAME", "neo4j"))
     password: str = Field(default_factory=lambda: os.getenv("NEO4J_PASSWORD", "password"))
-    database: str = Field(default_factory=lambda: os.getenv("NEO4J_DATABASE", "agri_rag_kg"))
+    database: str = Field(default_factory=lambda: os.getenv("NEO4J_DATABASE", "neo4j"))
 
     class Config:
         env_prefix = "AGRI_RAG_NEO4J_"
@@ -32,15 +32,29 @@ class ChromaDBSettings(BaseSettings):
         env_prefix = "AGRI_RAG_CHROMA_"
         extra = "ignore"
 
+
+class FAISSSettings(BaseSettings):
+    persistence_dir: Path = Field(default_factory=lambda: Path(os.getenv("FAISS_PERSISTENCE_DIR", "data/faiss_db")))
+    collection_name: str = Field(default_factory=lambda: os.getenv("FAISS_COLLECTION_NAME", "agriculture_corpus"))
+    embedding_model: str = Field(default_factory=lambda: os.getenv("FAISS_EMBEDDING_MODEL", "all-MiniLM-L6-v2"))
+    index_type: str = Field(default_factory=lambda: os.getenv("FAISS_INDEX_TYPE", "Flat"))
+
+    class Config:
+        env_prefix = "AGRI_RAG_FAISS_"
+        extra = "ignore"
+
 class TripleExtractorSettings(BaseSettings):
     provider: str = Field(default_factory=lambda: os.getenv("TRIPLET_PROVIDER", os.getenv("LLM_PROVIDER", "ollama")))
     model_name: str = Field(default_factory=lambda: os.getenv("TRIPLET_OLLAMA_MODEL", os.getenv("OLLAMA_MODEL", "llama3.2:1b")))
     openai_model: str = Field(default_factory=lambda: os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
     groq_model: str = Field(default_factory=lambda: os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"))
+    openrouter_model: str = Field(default_factory=lambda: os.getenv("OPENROUTER_MODEL", "minimax/minimax-m2.5:free"))
     base_url: str = Field(default_factory=lambda: os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"))
     openai_base_url: str = Field(default_factory=lambda: os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"))
+    openrouter_base_url: str = Field(default_factory=lambda: os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"))
     api_key: Optional[str] = Field(default_factory=lambda: os.getenv("OPENAI_API_KEY"))
     groq_api_key: Optional[str] = Field(default_factory=lambda: os.getenv("GROQ_API_KEY"))
+    openrouter_api_key: Optional[str] = Field(default_factory=lambda: os.getenv("OPENROUTER_API_KEY"))
     allow_rule_fallback: bool = Field(default_factory=lambda: os.getenv("ALLOW_RULE_FALLBACK", "false").lower() == "true")
     temperature: float = Field(default_factory=lambda: float(os.getenv("TRIPLET_TEMPERATURE", "0.3")))
     max_tokens: int = Field(default_factory=lambda: int(os.getenv("TRIPLET_MAX_TOKENS", "500")))
@@ -57,8 +71,8 @@ class NLISettings(BaseSettings):
     model_name: str = Field(default_factory=lambda: os.getenv("NLI_MODEL", "cross-encoder/nli-deberta-v3-base"))
     device: str = Field(default_factory=lambda: os.getenv("NLI_DEVICE", "cpu"))
     hf_token: Optional[str] = Field(default_factory=lambda: os.getenv("HUGGINGFACE_TOKEN"))
-    entailment_threshold: float = Field(default=0.7)
-    neutral_threshold: float = Field(default=0.4)
+    entailment_threshold: float = Field(default=0.35)
+    neutral_threshold: float = Field(default=0.20)
 
     class Config:
         env_prefix = "AGRI_RAG_NLI_"
@@ -102,6 +116,7 @@ class Settings(BaseSettings):
     # Subsettings
     neo4j: Neo4jSettings = Field(default_factory=Neo4jSettings)
     chromadb: ChromaDBSettings = Field(default_factory=ChromaDBSettings)
+    faiss: FAISSSettings = Field(default_factory=FAISSSettings)
     triplet_extractor: TripleExtractorSettings = Field(default_factory=TripleExtractorSettings)
     nli: NLISettings = Field(default_factory=NLISettings)
     llm: LLMSettings = Field(default_factory=LLMSettings)
@@ -110,6 +125,7 @@ class Settings(BaseSettings):
     # General settings
     crops: list = Field(default=["Rice", "Wheat", "Cotton", "Maize", "Sugarcane"])
     debug: bool = Field(default_factory=lambda: os.getenv("DEBUG", "false").lower() == "true")
+    use_faiss: bool = Field(default_factory=lambda: os.getenv("USE_FAISS", "true").lower() == "true")
     
     class Config:
         env_file = ".env"

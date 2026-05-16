@@ -14,6 +14,7 @@ from configs.settings import settings
 from src.utils.data_loader import DataLoader
 from src.models.triplet_extractor import TripletExtractor
 from src.retrieval.vector_retriever import VectorStore
+from src.retrieval.faiss_retriever import FAISSVectorStore
 from src.retrieval.neo4j_retriever import KnowledgeGraph
 from src.retrieval.hybrid_retriever import HybridRetriever
 from src.pruning.nli_pruner import NLIPruner
@@ -50,12 +51,21 @@ class AgriRAGApplication:
         try:
             logger.info("Initializing retrieval components...")
             
-            # Initialize Vector Store (ChromaDB)
-            self.vector_store = VectorStore(
-                collection_name=settings.chromadb.collection_name,
-                embedding_model=settings.chromadb.embedding_model,
-                persistence_dir=str(settings.chromadb.persistence_dir)
-            )
+            # Initialize Vector Store (FAISS or ChromaDB)
+            if settings.use_faiss:
+                logger.info("Using FAISS for vector storage")
+                self.vector_store = FAISSVectorStore(
+                    collection_name=settings.faiss.collection_name,
+                    embedding_model=settings.faiss.embedding_model,
+                    persistence_dir=str(settings.faiss.persistence_dir)
+                )
+            else:
+                logger.info("Using ChromaDB for vector storage")
+                self.vector_store = VectorStore(
+                    collection_name=settings.chromadb.collection_name,
+                    embedding_model=settings.chromadb.embedding_model,
+                    persistence_dir=str(settings.chromadb.persistence_dir)
+                )
             
             # Initialize Knowledge Graph (Neo4j)
             self.knowledge_graph = KnowledgeGraph(

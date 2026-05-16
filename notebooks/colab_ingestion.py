@@ -9,15 +9,18 @@ Colab quick start:
     !pip install -q pypdf tqdm pandas requests
     !python colab_ingestion.py --input_dir /content/agri_data --output_dir /content/agri_exports
 
-Recommended environment variables:
+Supported providers:
     PROVIDER=groq
     GROQ_API_KEY=...
     MODEL_NAME=llama-3.3-70b-versatile
 
-Alternative OpenAI-compatible provider:
     PROVIDER=openai
     OPENAI_API_KEY=...
     MODEL_NAME=gpt-4o-mini
+
+    PROVIDER=openrouter
+    OPENROUTER_API_KEY=...
+    MODEL_NAME=tencent/hy3-preview
 """
 
 from __future__ import annotations
@@ -33,6 +36,12 @@ import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 import requests
 from tqdm import tqdm
@@ -176,8 +185,11 @@ class ExtractorClient:
         elif self.provider == "openai":
             self.api_key = os.getenv("OPENAI_API_KEY")
             self.base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+        elif self.provider == "openrouter":
+            self.api_key = os.getenv("OPENROUTER_API_KEY")
+            self.base_url = "https://openrouter.ai/api/v1"
         else:
-            raise ValueError("Supported providers: groq, openai")
+            raise ValueError("Supported providers: groq, openai, openrouter")
 
         if not self.api_key:
             raise RuntimeError(f"Missing API key for provider={self.provider}")
@@ -372,8 +384,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Extract Agri-RAG triplets in Colab.")
     parser.add_argument("--input_dir", default="/content/agri_data", help="Folder containing PDF/TXT files.")
     parser.add_argument("--output_dir", default="/content/agri_exports", help="Folder for exported chunks/triplets.")
-    parser.add_argument("--provider", default=os.getenv("PROVIDER", "groq"), choices=["groq", "openai"])
-    parser.add_argument("--model", default=os.getenv("MODEL_NAME", "llama-3.3-70b-versatile"))
+    parser.add_argument("--provider", default=os.getenv("PROVIDER", "groq"), choices=["groq", "openai", "openrouter"])
+    parser.add_argument("--model", default=os.getenv("MODEL_NAME", ""))
     parser.add_argument("--chunk_words", type=int, default=int(os.getenv("CHUNK_WORDS", "350")))
     parser.add_argument("--overlap_words", type=int, default=int(os.getenv("OVERLAP_WORDS", "40")))
     parser.add_argument("--max_pages", type=int, default=int(os.getenv("MAX_PAGES", "0")), help="0 means all pages.")
@@ -382,6 +394,15 @@ def main() -> None:
     parser.add_argument("--max_tokens", type=int, default=int(os.getenv("MAX_TOKENS", "700")))
     parser.add_argument("--sleep", type=float, default=float(os.getenv("REQUEST_SLEEP", "0.3")))
     args = parser.parse_args()
+
+    # Set default model based on provider if not specified
+    if not args.model:
+        if args.provider == "openrouter":
+            args.model = "minimax/minimax-m2.5:free"
+        elif args.provider == "groq":
+            args.model = "llama-3.3-70b-versatile"
+        elif args.provider == "openai":
+            args.model = "gpt-4o-mini"
 
     input_dir = Path(args.input_dir)
     output_dir = Path(args.output_dir)

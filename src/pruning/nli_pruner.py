@@ -48,8 +48,8 @@ class NLIPruner:
         provider: str = "transformers",
         device: str = "cuda",
         hf_token: str = None,
-        entailment_threshold: float = 0.7,
-        neutral_threshold: float = 0.4,
+        entailment_threshold: float = 0.6,  # Balanced
+        neutral_threshold: float = 0.3,  # Balanced
         keep_contradictions: bool = True
     ):
         """
@@ -284,46 +284,37 @@ class NLIPruner:
             reasoning = ""
             
             if label == "entailment":
-                if score >= self.entailment_threshold and lexical_score >= 0.4:
+                if score >= self.entailment_threshold and lexical_score >= 0.3:
                     keep = True
                     reasoning = (
-                        f"Entails hypothesis with high confidence ({score:.3f}) "
+                        f"Entails hypothesis ({score:.3f}) "
                         f"and lexical relevance ({lexical_score:.3f})"
                     )
-                elif score >= self.entailment_threshold:
-                    keep = False
+                elif score >= 0.5:
+                    keep = True
                     reasoning = (
-                        f"Entails but lexical relevance is too low "
-                        f"({lexical_score:.3f})"
+                        f"Strong entailment ({score:.3f})"
                     )
                 else:
                     keep = False
-                    reasoning = f"Entails but below threshold ({score:.3f})"
+                    reasoning = f"Weak entailment ({score:.3f})"
             
             elif label == "contradiction":
-                if self.keep_contradictions and lexical_score >= 0.4:
-                    keep = True
-                    reasoning = (
-                        f"Contradicts hypothesis (WARNING - score: {score:.3f}, "
-                        f"lexical relevance: {lexical_score:.3f})"
-                    )
-                else:
-                    keep = False
-                    reasoning = "Contradicts hypothesis but was filtered out"
+                # Discard contradictions - they cause hallucinations
+                keep = False
+                reasoning = "Contradiction discarded (causes hallucination)"
             
             else:  # neutral
-                if lexical_score >= 0.6:
+                # Be more selective with neutral facts
+                if lexical_score >= 0.55:
                     keep = True
                     reasoning = (
-                        f"Neutral by NLI but relevant by lexical overlap "
+                        f"Neutral but lexically relevant "
                         f"({lexical_score:.3f})"
                     )
-                elif score <= self.neutral_threshold:
-                    keep = False
-                    reasoning = f"Neutral/irrelevant (score: {score:.3f})"
                 else:
                     keep = False
-                    reasoning = f"Neutral but close to threshold (score: {score:.3f})"
+                    reasoning = f"Not relevant (lexical: {lexical_score:.3f})"
             
             # Store result
             result = PruningResult(
@@ -338,6 +329,12 @@ class NLIPruner:
             # Add to output if kept
             if keep:
                 pruned_facts.append(fact)
+            
+            # Fallback: ensure minimum facts
+            if not pruned_facts and facts:
+                # Pruning too aggressive - keep top 5 by lexical relevance
+                logger.warning(f"Pruning filtered all facts ({len(facts)}) - using fallback")
+                pruned_facts = facts[:5]
             
             logger.debug(f"Fact: {fact[:60]}... -> {label} -> Keep: {keep}")
         

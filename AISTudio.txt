@@ -1,0 +1,97 @@
+This is an excellent start, Sachidanand. Your code is structurally sound,
+modular, and closely aligns with the technical objectives stated in your
+synopsis.
+
+You have correctly implemented the "Neuro-Symbolic" split: Neo4j for the
+Symbolic (Graph) part and FAISS/DeBERTa for the Neural part.
+
+However, to ensure this meets the high standards for a Major Project Review at
+RVCE, I have identified a few areas where the logic needs to be "tightened" to
+match your specific innovation: NLI-Gated Pruning.
+
+1. Alignment Check & Critical Improvements
+
+Phase 1: Ingestion (The Foundation)
+
+  - The "Triplet Gap": In step2_extract_triplets, you are extracting (Subject,
+    Relation, Object). For your NLI gate to work effectively, the NLI model
+    needs a "Premise" (a full sentence).
+      - Improvement: When saving triplets, you should also generate a
+        "Verbalized Triplet" (e.g., instead of just (Rice, has_disease, Blast),
+        save "Rice is susceptible to a disease called Blast."). This makes the
+        NLI scoring much more accurate.
+  - Incremental Loading: Your code is already good here, but ensure the Neo4j
+    constraints are set (e.g., unique constraints on Node names) so that running
+    the script twice doesn't create duplicate nodes.
+
+Phase 2: Evaluation (The Innovation)
+
+  - The NLI Logic: Ensure the NLIPruner class implements the specific logic from
+    your synopsis: Discard Neutral, Keep Entailed AND Contradictory.
+  - RAGAS Contexts: RAGAS expects contexts as strings. If your pipeline returns
+    raw triplets, the RAGAS evaluator might give low scores because it doesn't
+    "understand" the graph format. You must pass the verbalized sentences.
+
+2. Recommended Code Modifications
+
+In phase1_ingestion.py (Add Verbalization Logic)
+
+In step2_extract_triplets, modify how you save the data to support the NLI
+logic:
+
+# Inside the loop where you process doc_triplets:
+for t in doc_triplets:
+    # Verbalize the triplet for the NLI Premise
+    verbalized = f"{t.subject} {t.relation.replace('_', ' ')} {t.object}."
+    
+    with open(OUTPUT_TRIPLETS, 'a', encoding='utf-8') as f:
+        f.write(json.dumps({
+            "subject": t.subject,
+            "relation": t.relation,
+            "object": t.object,
+            "verbalized": verbalized, # CRITICAL for NLI
+            "confidence": t.confidence,
+            "source_doc": doc.metadata.get('source', 'unknown')
+        }) + "\n")
+
+In phase2_evaluation.py (Handling Contradictions for Safety)
+
+Your synopsis specifically mentions keeping Contradictory facts to ensure
+safety. Update your evaluation logic to check for this:
+
+# In the run_sample_queries function:
+for question in sample_questions:
+    result = pipeline.process(question)
+    
+    # Logic to show the professors you are handling contradictions
+    contradictions = [f for f in result.debug_info if f['label'] == 'CONTRADICTION']
+    if contradictions:
+        logger.warning(f"⚠️ SAFETY ALERT: Found {len(contradictions)} contradictory facts in KG!")
+        for c in contradictions:
+            logger.warning(f"  - Conflict: {c['fact']}")
+
+3. Strategic Tuning for your USN/College Review
+
+To ensure your implementation matches your "Architecture" slide (Slide 4):
+
+1.  Memory Management (RTX 3060): In phase2_evaluation.py, since you are using
+    Groq for generation but DeBERTa locally for NLI, you are in good shape.
+    However, make sure NLIPruner loads the model with torch_dtype=torch.float16
+    to save VRAM on your 3060.
+2.  RAGAS Ground Truth: For your final review, don't use "dummy" ground truths
+    in calculate_ragas_metrics. Use 5-10 actual Q&A pairs from the TNAU Crop
+    Production Guide. Professors will verify if the "Answer" matches the TNAU
+    "Package of Practices (PoP)."
+3.  Neo4j Schema: Ensure your KnowledgeGraph class in
+    src/retrieval/neo4j_retriever uses specific labels like :Crop, :Disease,
+    :Pesticide rather than generic nodes. This makes your "Subgraph Pruning"
+    (Objective 3) much more impressive during the demo.
+
+Does the TripletExtractor you wrote handle the TNAU PDF tables well?
+
+Agricultural manuals are full of dosage tables. If the extractor struggles, we
+might need to add a specialized "Table-to-Triplet" prompt using Llama-3-Vision
+or a markdown-based table parser.
+
+Shall I help you refine the NLIPruner class logic to ensure it handles the
+"Neutral" pruning correctly?

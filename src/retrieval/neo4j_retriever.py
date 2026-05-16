@@ -66,7 +66,7 @@ class KnowledgeGraph:
         uri: str = None,
         username: str = None,
         password: str = None,
-        database: str = "agri_rag_kg"
+        database: str = "neo4j"
     ):
         """
         Initialize Knowledge Graph

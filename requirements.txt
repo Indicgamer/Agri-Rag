@@ -45,3 +45,4 @@ tqdm>=4.60.0
 pytest>=7.0.0
 black>=23.0.0
 pylint>=2.15.0
+faiss-cpu>=1.7.0
