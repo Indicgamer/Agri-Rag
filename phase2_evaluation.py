@@ -59,13 +59,20 @@ def initialize_pipeline() -> AgriRAGPipeline:
         graph_weight=settings.retrieval.graph_weight
     )
     
-    # Initialize NLI Pruner
+    # Initialize NLI Pruner with FP16 optimization for VRAM
+    import torch
     nli_pruner = NLIPruner(
         model_name=settings.nli.model_name,
-        device="cuda" if settings.nli.device == "cuda" else "cpu",
+        device="cuda" if torch.cuda.is_available() and settings.nli.device == "cuda" else "cpu",
         entailment_threshold=settings.nli.entailment_threshold,
-        neutral_threshold=settings.nli.neutral_threshold
+        neutral_threshold=settings.nli.neutral_threshold,
+        keep_contradictions=True  # Keep contradictions for safety warnings
     )
+    
+    # Load NLI model in FP16 if on CUDA
+    if nli_pruner.model is not None and torch.cuda.is_available():
+        nli_pruner.model = nli_pruner.model.half()
+        logger.info("NLI model loaded in FP16 mode for VRAM optimization")
     
     # Initialize Response Generator
     response_generator = ResponseGenerator(
@@ -86,7 +93,7 @@ def initialize_pipeline() -> AgriRAGPipeline:
 
 
 def run_sample_queries(pipeline: AgriRAGPipeline):
-    """Run sample queries and display results"""
+    """Run sample queries and display results with contradiction warnings"""
     sample_questions = [
         "How can I prevent fungal blast in rice?",
         "What is the best fertilizer for wheat?",
@@ -103,14 +110,17 @@ def run_sample_queries(pipeline: AgriRAGPipeline):
         logger.info(f"{'='*60}")
         
         try:
-            result = pipeline.process(question, top_k_retrieval=6)
+            result = pipeline.process(question, top_k_retrieval=12)
             
             logger.info(f"\nResponse:\n{result.response}")
             logger.info(f"\nConfidence: {result.confidence:.2%}")
             logger.info(f"Execution time: {result.execution_time:.2f}s")
             
+            # SAFETY ALERT: Show contradictions found during pruning
             if result.warnings:
-                logger.warning(f"Warnings: {result.warnings}")
+                logger.warning(f"\n⚠️ SAFETY ALERT: Found {len(result.warnings)} contradictory facts!")
+                for warning in result.warnings:
+                    logger.warning(f"  - Conflict: {warning}")
             
             if result.citations:
                 logger.info(f"Citations: {len(result.citations)} sources")
@@ -121,12 +131,13 @@ def run_sample_queries(pipeline: AgriRAGPipeline):
 
 def calculate_ragas_metrics(pipeline: AgriRAGPipeline) -> dict:
     """
-    Calculate RAGAS metrics using GroQ as the evaluator LLM
+    Calculate RAGAS metrics using Groq as the evaluator LLM
+    Uses ground truth Q&A pairs from TNAU manuals
     """
     logger.info("Calculating RAGAS metrics...")
     
     try:
-        # Clear any OpenAI env vars to avoid conflicts with GroQ
+        # Clear any OpenAI env vars to avoid conflicts with Groq
         for key in ["OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL_NAME"]:
             os.environ.pop(key, None)
         
@@ -135,7 +146,7 @@ def calculate_ragas_metrics(pipeline: AgriRAGPipeline) -> dict:
         from ragas.metrics import faithfulness, context_precision, answer_relevancy
         from datasets import Dataset
         
-        # Create GroQ evaluator (overrides RAGAS default gpt-4o-mini)
+        # Create Groq evaluator (overrides RAGAS default gpt-4o-mini)
         groq_llm = ChatGroq(
             model="llama-3.1-8b-instant",
             api_key=os.getenv("GROQ_API_KEY"),
@@ -147,34 +158,47 @@ def calculate_ragas_metrics(pipeline: AgriRAGPipeline) -> dict:
         context_precision.llm = groq_llm
         answer_relevancy.llm = groq_llm
         
+        # Load ground truth dataset if available
+        ground_truth_file = Path("data/ragas_ground_truth.json")
+        if ground_truth_file.exists():
+            with open(ground_truth_file, 'r', encoding='utf-8') as f:
+                gt_data = json.load(f)
+                questions_data = gt_data.get('questions', [])
+                logger.info(f"Loaded {len(questions_data)} ground truth Q&A pairs")
+        else:
+            # Fallback to hardcoded questions with TNAU-based answers
+            questions_data = [
+                {"question": "How can I prevent fungal blast in rice?", "answer": "Use proper drainage, resistant varieties, and apply Tricyclazole 75WP fungicide."},
+                {"question": "What fertilizer for wheat?", "answer": "Apply NPK fertilizer based on soil test, typically 120kg N, 60kg P2O5, 40kg K2O per hectare."},
+                {"question": "How to control cotton bollworms?", "answer": "Use integrated pest management with pheromone traps and approved insecticides like Spinosad."}
+            ]
+            logger.info("Using fallback ground truth questions")
+        
         # Prepare dataset
         eval_data = {
             "question": [],
             "answer": [],
             "contexts": [],
-            "ground_truth": [
-                "Use proper drainage and resistant varieties to prevent fungal blast in rice.",
-                "Apply NPK fertilizer based on soil test for wheat.",
-                "Use integrated pest management and approved insecticides for cotton bollworms."
-            ]
+            "ground_truth": []
         }
         
-        questions = [
-            "How can I prevent fungal blast in rice?",
-            "What fertilizer for wheat?",
-            "How to control cotton bollworms?"
-        ]
-        
-        for q in questions:
+        for q_data in questions_data[:5]:  # Limit to 5 for faster evaluation
+            q = q_data['question']
             eval_data["question"].append(q)
-            result = pipeline.process(q, top_k_retrieval=6)
+            eval_data["ground_truth"].append(q_data['answer'])
+            
+            result = pipeline.process(q, top_k_retrieval=12)
             eval_data["answer"].append(result.response)
-            eval_data["contexts"].append(result.retrieved_facts)
+            eval_data["contexts"].append(result.retrieved_facts[:10])  # Limit contexts
         
         ds = Dataset.from_dict(eval_data)
-        metrics = evaluate(ds, metrics=[faithfulness, context_precision])
         
+        logger.info("Running RAGAS evaluation (this may take a while)...")
+        metrics = evaluate(ds, metrics=[faithfulness, context_precision, answer_relevancy])
+        
+        logger.info(f"\n{'='*60}")
         logger.info(f"RAGAS Results:")
+        logger.info(f"{'='*60}")
         for k, v in metrics.items():
             logger.info(f"  {k}: {v:.3f}")
         

@@ -66,7 +66,7 @@ class KnowledgeGraph:
         uri: str = None,
         username: str = None,
         password: str = None,
-        database: str = "neo4j"
+        database: str = None
     ):
         """
         Initialize Knowledge Graph
@@ -75,12 +75,12 @@ class KnowledgeGraph:
             uri: Neo4j connection URI
             username: Neo4j username
             password: Neo4j password
-            database: Database name
+            database: Database name (None for default)
         """
         self.uri = uri or settings.neo4j.uri
         self.username = username or settings.neo4j.username
         self.password = password or settings.neo4j.password
-        self.database = database
+        self.database = database if database else None
         
         # Initialize driver
         self.driver = None

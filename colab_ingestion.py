@@ -17,11 +17,6 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_groq import ChatGroq
 from neo4j import GraphDatabase
 
-# --- 2. CONFIGURATION (ENTER YOUR KEYS HERE) ---
-GROQ_API_KEY = "PASTE_YOUR_GROQ_KEY_HERE"
-AURA_URI = "neo4j+s://PASTE_YOUR_INSTANCE_ID.databases.neo4j.io"
-AURA_USER = "neo4j"
-AURA_PWD = "PASTE_YOUR_AURA_PASSWORD_HERE"
 
 # Logic Settings
 CHUNK_SIZE = 1200 

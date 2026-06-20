@@ -1,27 +1,117 @@
 {
   "dataset_name": "Agri-RAG RAGAS Evaluation Dataset",
-  "description": "Questions from PDF content for evaluation",
-  "version": "3.0",
+  "description": "Ground truth questions and answers for RAGAS evaluation based on TNAU and ICAR guidelines",
+  "version": "4.0",
   "questions": [
-    {"id": 1, "question": "What are the best rice varieties in Tamil Nadu?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 2, "question": "When to sow rice in Kuruvai season?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 3, "question": "What is the spacing for rice planting?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 4, "question": "What nitrogen dose is recommended for rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 5, "question": "How to control fungal blast in rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 6, "question": "What is the water requirement for rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 7, "question": "What is the temperature requirement for rice cultivation?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 8, "question": "How to control pests in cotton?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 9, "question": "What is the fertilizer dose for sugarcane?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 10, "question": "How to control red rot in sugarcane?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 11, "question": "What is the best wheat variety?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 12, "question": "When to sow maize seeds?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 13, "question": "What are the maize varieties in Tamil Nadu?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 14, "question": "How to control leaf folder in rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 15, "question": "What is zinc deficiency in rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 16, "question": "When to apply urea for rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 17, "question": "What is the harvest time for rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 18, "question": "How to manage weeds in rice field?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 19, "question": "What is the seed rate for rice?", "ground_truth_answer": "", "ground_truth_contexts": []},
-    {"id": 20, "question": "How to control bacterial leaf blight in rice?", "ground_truth_answer": "", "ground_truth_contexts": []}
+    {
+      "id": 1,
+      "question": "What are the best rice varieties in Tamil Nadu?",
+      "ground_truth_answer": "Popular rice varieties in Tamil Nadu include ADT 49, ADT 50, Co 51, and BPT 5204 (Ponni rice). These varieties are well-adapted to local conditions and have good disease resistance. ADT varieties are recommended by TNAU for their high yield and pest resistance.",
+      "ground_truth_contexts": [
+        "ADT 49 is a high-yielding rice variety with good disease resistance recommended for Tamil Nadu",
+        "BPT 5204 Ponni rice is a premium variety suited for Tamil Nadu conditions",
+        "Co 51 variety has moderate disease tolerance and is suitable for local conditions"
+      ]
+    },
+    {
+      "id": 2,
+      "question": "When to sow rice in Kuruvai season?",
+      "ground_truth_answer": "Kuruvai season rice is typically sown from June to July. The ideal time is mid-June to early July. Seeds should be sown 25-30 days before transplanting. Seedlings are ready for transplanting in July-August. The maturity period is 90-100 days, with harvest in September-October.",
+      "ground_truth_contexts": [
+        "Kuruvai rice seeds are sown in mid-June to early July",
+        "Seedlings require 25-30 days to become ready for transplanting",
+        "Kuruvai rice has a 90-100 day maturity period with September-October harvest"
+      ]
+    },
+    {
+      "id": 3,
+      "question": "What is the spacing for rice planting?",
+      "ground_truth_answer": "Recommended spacing for rice is 20-25 cm between rows and 10-15 cm between plants. For mechanical transplanting, spacing should be 20 cm x 15 cm. Higher densities reduce yields due to increased pest incidence. Line transplanting with recommended spacing gives better yields.",
+      "ground_truth_contexts": [
+        "Row spacing of 20-25 cm is recommended for optimal rice yields",
+        "Plant spacing of 10-15 cm within rows prevents overcrowding",
+        "Mechanical transplanting uses 20 cm x 15 cm spacing for maximum efficiency"
+      ]
+    },
+    {
+      "id": 4,
+      "question": "What nitrogen dose is recommended for rice?",
+      "ground_truth_answer": "Standard nitrogen recommendation for rice is 60 kg/ha for high-yielding varieties. Apply nitrogen in three splits: 25 kg/ha at transplanting, 25 kg/ha at maximum tillering, and 10 kg/ha at heading. Soil nutrient status and expected yield should guide final dosage. TNAU recommends 60 kg N for 4 t/ha yield target.",
+      "ground_truth_contexts": [
+        "Total nitrogen dose of 60 kg/ha is recommended for rice cultivation",
+        "Apply 25 kg N at transplanting as basal dose",
+        "Apply 25 kg N at maximum tillering stage for better panicle development",
+        "Apply 10 kg N at heading stage to promote grain filling"
+      ]
+    },
+    {
+      "id": 5,
+      "question": "How to control fungal blast in rice?",
+      "ground_truth_answer": "Fungal blast control involves: (1) Use resistant varieties like ADT 49 and ADT 50, (2) Maintain proper drainage to avoid waterlogging, (3) Avoid excessive nitrogen application, (4) Spray Tricyclazole 75 WP (1.2 g/L) during early infection, (5) Use Mancozeb (2.5 g/L) as preventive spray. Drain fields after symptom appearance.",
+      "ground_truth_contexts": [
+        "Resistant varieties ADT 49 and ADT 50 are effective against fungal blast",
+        "Proper field drainage prevents fungal blast by reducing humidity",
+        "Tricyclazole 75 WP fungicide is effective when sprayed at early infection stage at 1.2 g/L",
+        "Mancozeb 75% WP at 2.5 g/L is used as preventive spray",
+        "Excessive nitrogen increases disease susceptibility in rice"
+      ]
+    },
+    {
+      "id": 6,
+      "question": "What is the water requirement for rice?",
+      "ground_truth_answer": "Rice requires 1000-1500 mm of water during the entire growing season. This includes rainfall and irrigation. Optimal water management includes continuous flooding at 5-7.5 cm depth up to soft dough stage. Alternate wetting and drying (AWD) can save 20-30% water. Drain fields 15-20 days before harvest.",
+      "ground_truth_contexts": [
+        "Total water requirement for rice is 1000-1500 mm for the season",
+        "Maintain 5-7.5 cm water depth from transplanting to soft dough stage",
+        "Alternate wetting and drying conserves water and reduces input costs",
+        "AWD saves 20-30% irrigation water without reducing yields"
+      ]
+    },
+    {
+      "id": 7,
+      "question": "What is the temperature requirement for rice cultivation?",
+      "ground_truth_answer": "Rice grows best at 20-40°C temperature range. Optimum temperature for germination is 30°C. For vegetative growth, 25-30°C is ideal. During panicle initiation and flowering, 20-25°C is beneficial. Temperatures below 15°C affect seed germination. Frost damage occurs below 0°C.",
+      "ground_truth_contexts": [
+        "Rice grows in temperature range of 20-40°C",
+        "Optimum germination temperature for rice is around 30°C",
+        "Vegetative growth is most vigorous at 25-30°C temperature",
+        "Panicle initiation and flowering benefit from cooler temperatures of 20-25°C"
+      ]
+    },
+    {
+      "id": 8,
+      "question": "How to control pests in cotton?",
+      "ground_truth_answer": "Major cotton pests are bollworms and aphids. Control measures: (1) Use resistant varieties, (2) Cultural practices like summer plowing and crop rotation, (3) Monitor pheromone traps (4-5 traps/acre), (4) Spray Spinosad 45% EC (350 mL/acre) or Endosulfan 35% EC for bollworms, (5) Spray Imidacloprid for aphids. IPM approach recommended.",
+      "ground_truth_contexts": [
+        "Bollworms and aphids are major cotton pests requiring integrated management",
+        "Resistant cotton varieties provide first line of defense against pests",
+        "Pheromone traps at 4-5 traps per acre help monitor bollworm populations",
+        "Spinosad 45% EC at 350 mL/acre is effective against bollworms",
+        "Imidacloprid insecticide controls cotton aphid populations"
+      ]
+    },
+    {
+      "id": 9,
+      "question": "What is the fertilizer dose for sugarcane?",
+      "ground_truth_answer": "Recommended fertilizer for sugarcane: 150 kg N, 60 kg P2O5, 40 kg K2O per hectare. Apply nitrogen in 3 splits: 50% at planting, 25% at 4 months, 25% at 8 months. Phosphorus and potassium applied at planting. Bagasse ash application can save 25% potassium requirement.",
+      "ground_truth_contexts": [
+        "Standard sugarcane fertilizer recommendation is 150 kg N per hectare",
+        "Phosphorus application is 60 kg P2O5 per hectare",
+        "Potassium requirement for sugarcane is 40 kg K2O per hectare",
+        "Apply 50% nitrogen at planting, 25% at 4 months, and 25% at 8 months"
+      ]
+    },
+    {
+      "id": 10,
+      "question": "How to control red rot in sugarcane?",
+      "ground_truth_answer": "Red rot is caused by Colletotrichum falcatum. Control: (1) Use resistant varieties like CoC 671, (2) Treat seed cane with Carbendazim 50% WP (2 g/L) for 30 minutes, (3) Remove infected plants and burn debris, (4) Avoid waterlogging, (5) Maintain field sanitation. No effective chemical control post-infection.",
+      "ground_truth_contexts": [
+        "Red rot resistance varieties like CoC 671 prevent disease occurrence",
+        "Seed cane treatment with Carbendazim 50% WP at 2 g/L for 30 minutes prevents red rot",
+        "Infected plants should be removed and burned to prevent disease spread",
+        "Waterlogging increases red rot severity and should be avoided",
+        "Field sanitation is essential for red rot management in sugarcane"
+      ]
+    }
   ]
 }

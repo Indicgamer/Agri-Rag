@@ -17,7 +17,7 @@ class Neo4jSettings(BaseSettings):
     uri: str = Field(default_factory=lambda: os.getenv("NEO4J_URI", "bolt://localhost:7687"))
     username: str = Field(default_factory=lambda: os.getenv("NEO4J_USERNAME", "neo4j"))
     password: str = Field(default_factory=lambda: os.getenv("NEO4J_PASSWORD", "password"))
-    database: str = Field(default_factory=lambda: os.getenv("NEO4J_DATABASE", "neo4j"))
+    database: str = Field(default_factory=lambda: os.getenv("NEO4J_DATABASE", ""))
 
     class Config:
         env_prefix = "AGRI_RAG_NEO4J_"
@@ -48,7 +48,7 @@ class TripleExtractorSettings(BaseSettings):
     model_name: str = Field(default_factory=lambda: os.getenv("TRIPLET_OLLAMA_MODEL", os.getenv("OLLAMA_MODEL", "llama3.2:1b")))
     openai_model: str = Field(default_factory=lambda: os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
     groq_model: str = Field(default_factory=lambda: os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"))
-    openrouter_model: str = Field(default_factory=lambda: os.getenv("OPENROUTER_MODEL", "minimax/minimax-m2.5:free"))
+    openrouter_model: str = Field(default_factory=lambda: os.getenv("OPENROUTER_MODEL", "deepseek/deepseek-v4-flash:free"))
     base_url: str = Field(default_factory=lambda: os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"))
     openai_base_url: str = Field(default_factory=lambda: os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"))
     openrouter_base_url: str = Field(default_factory=lambda: os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"))

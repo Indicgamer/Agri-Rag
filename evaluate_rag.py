@@ -165,17 +165,22 @@ def evaluate_question(pipeline_nli, pipeline_baseline, question):
     
     # Run NLI-Gated
     result_nli = pipeline_nli.process(question, top_k_retrieval=12)
-    nli_facts_used = result_nli.pipeline_steps.get('pruning', {}).get('pruned_facts', 6) if hasattr(result_nli, 'pipeline_steps') else 6
+    nli_pruned_count = result_nli.pipeline_steps.get('pruning', {}).get('pruned_facts', 0)
+    nli_retrieved_count = result_nli.pipeline_steps.get('retrieval', {}).get('num_results', 0)
     nli_citations = len(result_nli.citations) if result_nli.citations else 0
     
     # Run Standard RAG
-    result_baseline = pipeline_baseline.process(question, top_k=6)
+    result_baseline = pipeline_baseline.process(question, top_k=12)
     baseline_citations = len(result_baseline.citations) if result_baseline.citations else 0
-    baseline_facts_used = 6
+    baseline_facts_used = 12  # Baseline uses all retrieved facts
     
     # Faithfulness: ratio of citations to facts used (higher = less hallucination)
-    nli_faithfulness = nli_citations / max(nli_facts_used, 1)
+    # This measures how many retrieved facts were actually cited in the response
+    nli_faithfulness = nli_citations / max(nli_pruned_count, 1) if nli_pruned_count > 0 else 0
     baseline_faithfulness = baseline_citations / max(baseline_facts_used, 1)
+    
+    # Pruning effectiveness: how much did NLI reduce the context?
+    pruning_rate = (nli_retrieved_count - nli_pruned_count) / max(nli_retrieved_count, 1)
     
     # Hallucination reduction: positive = NLI more faithful
     hallucination_reduction = nli_faithfulness - baseline_faithfulness
@@ -184,15 +189,19 @@ def evaluate_question(pipeline_nli, pipeline_baseline, question):
         "question": question,
         "nli_response": result_nli.response,
         "nli_confidence": result_nli.confidence,
-        "nli_facts_used": nli_facts_used,
+        "nli_facts_retrieved": nli_retrieved_count,
+        "nli_facts_pruned": nli_pruned_count,
         "nli_citations": nli_citations,
         "nli_time": result_nli.execution_time,
+        "nli_faithfulness": nli_faithfulness,
+        "pruning_rate": pruning_rate,
         
         "baseline_response": result_baseline.response,
         "baseline_confidence": result_baseline.confidence,
         "baseline_facts_used": baseline_facts_used,
         "baseline_citations": baseline_citations,
         "baseline_time": result_baseline.execution_time,
+        "baseline_faithfulness": baseline_faithfulness,
         
         "hallucination_reduction": hallucination_reduction
     }
@@ -267,56 +276,54 @@ def calculate_ragas_metrics(results):
 
 
 def _calculate_custom_metrics(results):
-    """Fallback custom metrics"""
+    """Fallback custom metrics with proper faithfulness calculation"""
     logger.info("\n" + "-"*60)
     logger.info("CUSTOM METRICS (fallback)")
     logger.info("-"*60)
     
     nli_faithfulness = []
     baseline_faithfulness = []
-    nli_context_precision = []
-    baseline_context_precision = []
+    pruning_rates = []
     
     for r in results:
-        nli_f = r['nli_citations'] / max(r['nli_facts_used'], 1) if r['nli_facts_used'] > 0 else 0
-        baseline_f = r['baseline_citations'] / max(r['baseline_facts_used'], 1) if r['baseline_facts_used'] > 0 else 0
+        # Faithfulness: citations / facts used (measures how grounded the answer is)
+        nli_f = r.get('nli_faithfulness', 0)
+        baseline_f = r.get('baseline_faithfulness', 0)
         nli_faithfulness.append(nli_f)
         baseline_faithfulness.append(baseline_f)
         
-        nli_cp = r['nli_confidence'] / max(r['nli_facts_used'], 1) if r['nli_facts_used'] > 0 else 0
-        baseline_cp = r['baseline_confidence'] / max(r['baseline_facts_used'], 1) if r['baseline_facts_used'] > 0 else 0
-        nli_context_precision.append(nli_cp)
-        baseline_context_precision.append(baseline_cp)
+        # Pruning rate: how much context was reduced by NLI
+        pruning_rates.append(r.get('pruning_rate', 0))
     
     avg_nli_faith = sum(nli_faithfulness) / len(nli_faithfulness) if nli_faithfulness else 0
     avg_baseline_faith = sum(baseline_faithfulness) / len(baseline_faithfulness) if baseline_faithfulness else 0
-    avg_nli_cp = sum(nli_context_precision) / len(nli_context_precision) if nli_context_precision else 0
-    avg_baseline_cp = sum(baseline_context_precision) / len(baseline_context_precision) if baseline_context_precision else 0
+    avg_pruning_rate = sum(pruning_rates) / len(pruning_rates) if pruning_rates else 0
     avg_nli_conf = sum(r['nli_confidence'] for r in results) / len(results)
     avg_baseline_conf = sum(r['baseline_confidence'] for r in results) / len(results)
     avg_nli_time = sum(r['nli_time'] for r in results) / len(results)
     avg_baseline_time = sum(r['baseline_time'] for r in results) / len(results)
     
-    logger.info(f"{'Metric':<35} {'NLI-Gated':<12} {'Std RAG':<12} {'Diff':<12}")
-    logger.info("-"*75)
-    logger.info(f"{'1. Faithfulness (Citations/Facts)':<35} {avg_nli_faith:>10.2%} {avg_baseline_faith:>10.2%} {avg_nli_faith-avg_baseline_faith:>+10.2%}")
-    logger.info(f"{'2. Context Precision (Conf/Facts)':<35} {avg_nli_cp:>10.2%} {avg_baseline_cp:>10.2%} {avg_nli_cp-avg_baseline_cp:>+10.2%}")
-    logger.info(f"{'3. Overall Confidence':<35} {avg_nli_conf:>10.2%} {avg_baseline_conf:>10.2%} {avg_nli_conf-avg_baseline_conf:>+10.2%}")
-    logger.info(f"{'4. Avg Execution Time (s)':<35} {avg_nli_time:>10.2f}s {avg_baseline_time:>10.2f}s {avg_nli_time-avg_baseline_time:>+10.2f}s")
+    logger.info(f"{'Metric':<40} {'NLI-Gated':<12} {'Std RAG':<12} {'Diff':<12}")
+    logger.info("-"*80)
+    logger.info(f"{'1. Faithfulness (Citations/Facts)':<40} {avg_nli_faith:>10.2%} {avg_baseline_faith:>10.2%} {avg_nli_faith-avg_baseline_faith:>+10.2%}")
+    logger.info(f"{'2. Context Pruning Rate':<40} {avg_pruning_rate:>10.2%} {'N/A':>10} {'N/A':>10}")
+    logger.info(f"{'3. Overall Confidence':<40} {avg_nli_conf:>10.2%} {avg_baseline_conf:>10.2%} {avg_nli_conf-avg_baseline_conf:>+10.2%}")
+    logger.info(f"{'4. Avg Execution Time (s)':<40} {avg_nli_time:>10.2f}s {avg_baseline_time:>10.2f}s {avg_nli_time-avg_baseline_time:>+10.2f}s")
     
     nli_better = sum(1 for r in results if r['nli_confidence'] > r['baseline_confidence'])
     baseline_better = sum(1 for r in results if r['baseline_confidence'] > r['nli_confidence'])
     tie = len(results) - nli_better - baseline_better
     
-    logger.info(f"\n{'Questions where NLI wins:':<35} {nli_better}/{len(results)} ({nli_better/len(results)*100:.0f}%)")
-    logger.info(f"{'Questions where Baseline wins:':<35} {baseline_better}/{len(results)} ({baseline_better/len(results)*100:.0f}%)")
-    logger.info(f"{'Ties:':<35} {tie}/{len(results)} ({tie/len(results)*100:.0f}%)")
+    logger.info(f"\n{'Questions where NLI wins:':<40} {nli_better}/{len(results)} ({nli_better/len(results)*100:.0f}%)")
+    logger.info(f"{'Questions where Baseline wins:':<40} {baseline_better}/{len(results)} ({baseline_better/len(results)*100:.0f}%)")
+    logger.info(f"{'Ties:':<40} {tie}/{len(results)} ({tie/len(results)*100:.0f}%)")
     
     return {
         "nli_faithfulness": avg_nli_faith,
         "baseline_faithfulness": avg_baseline_faith,
         "nli_confidence": avg_nli_conf,
-        "baseline_confidence": avg_baseline_conf
+        "baseline_confidence": avg_baseline_conf,
+        "avg_pruning_rate": avg_pruning_rate
     }
 
 
@@ -358,10 +365,15 @@ def main():
         results.append(result)
         
         logger.info(f"\nQ: {q}")
-        logger.info(f"  NLI Confidence: {result['nli_confidence']:.0%} ({result['nli_facts_used']} facts)")
+        logger.info(f"  NLI Confidence: {result['nli_confidence']:.0%} ({result['nli_facts_pruned']}/{result['nli_facts_retrieved']} facts after pruning)")
         logger.info(f"  Baseline Confidence: {result['baseline_confidence']:.0%} ({result['baseline_facts_used']} facts)")
+        logger.info(f"  Hallucination Reduction: {result['hallucination_reduction']:+.2%}")
     
     metrics = calculate_ragas_metrics(results)
+    
+    # Add pruning rate to output
+    if 'avg_pruning_rate' in metrics:
+        logger.info(f"\nAverage Context Pruning Rate: {metrics['avg_pruning_rate']:.2%}")
     
     output_file = "evaluation_results.json"
     with open(output_file, 'w') as f:
